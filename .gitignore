@@ -1,0 +1,20 @@
+# Variables de entorno (por si en el futuro se agregan credenciales)
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Backups y temporales que genera el pipeline al correr
+*.bak
+*.bak-*
+*.log
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/

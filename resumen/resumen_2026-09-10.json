@@ -1,0 +1,16 @@
+{
+  "estado": "procesado",
+  "fecha": "2026-09-10",
+  "archivo": "ventas_2026-09-10.csv",
+  "filas_leidas": 243,
+  "filas_duplicadas_eliminadas": 2,
+  "filas_validas": 236,
+  "filas_descartadas": 7,
+  "pct_descartado": 0.0288,
+  "ventas_total_dia": 4268.7,
+  "ticket_promedio": 18.09,
+  "promedio_historico_30d": 4236.51,
+  "tiene_anomalia": false,
+  "anomalias": [],
+  "procesado_en": "2026-09-16T23:03:09"
+}

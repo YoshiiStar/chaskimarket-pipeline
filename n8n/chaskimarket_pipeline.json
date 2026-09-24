@@ -1,0 +1,231 @@
+{
+  "name": "ChaskiMarket - Pipeline diario de ventas",
+  "nodes": [
+    {
+      "id": "4434ab8e-612a-42af-8793-2a5e63f0a200",
+      "name": "Disparador diario 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e7ed7d4b-1fe9-450a-9f9f-0e7809f2508e",
+      "name": "Ejecutar ETL Python",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        40,
+        0
+      ],
+      "parameters": {
+        "command": "cd /ruta/a/tu/proyecto/chaskimarket-pipeline && python3 etl_diario.py"
+      }
+    },
+    {
+      "id": "5c946396-bebf-456f-a670-60f0367289ff",
+      "name": "Parsear resumen JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Toma el stdout del nodo \"Execute Command\" y parsea la última línea\n// (el JSON de resumen que imprime etl_diario.py) como un objeto.\nconst raw = $input.first().json.stdout || \"\";\nconst lineas = raw.trim().split(\"\\n\").filter(l => l.trim().length > 0);\nconst ultima = lineas[lineas.length - 1] || \"{}\";\nlet resumen;\ntry {\n  resumen = JSON.parse(ultima);\n} catch (e) {\n  resumen = { estado: \"error_parseo\", raw: ultima };\n}\nreturn [{ json: resumen }];"
+      }
+    },
+    {
+      "id": "3b67e30c-6e89-4671-ba93-9478af81fde6",
+      "name": "¿Se procesó un archivo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "337cfeb7-22d2-4476-b464-483f2d65a315",
+              "leftValue": "={{ $json.estado }}",
+              "rightValue": "procesado",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6aca0fb7-f354-4984-91e0-f6c8124083f4",
+      "name": "¿Hay anomalía?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        -80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "14a90030-9c76-490a-a0bc-695152bb8915",
+              "leftValue": "={{ $json.tiene_anomalia }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7a45143f-2625-4e13-af10-432ac1bc3c95",
+      "name": "Gmail - Enviar alerta",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        -160
+      ],
+      "parameters": {
+        "sendTo": "winercr12383@gmail.com",
+        "subject": "=⚠️ ChaskiMarket - Anomalía detectada ({{ $json.fecha }})",
+        "message": "=Se detectó una anomalía al procesar las ventas del {{ $json.fecha }}.\\n\\nVentas del día: S/ {{ $json.ventas_total_dia }}\\nPromedio histórico (30 días): S/ {{ $json.promedio_historico_30d }}\\nFilas descartadas: {{ $json.filas_descartadas }} de {{ $json.filas_leidas }} ({{ $json.pct_descartado }})\\n\\nDetalle:\\n{{ JSON.stringify($json.anomalias, null, 2) }}",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "bfe7e38f-adfb-406c-a162-c6a68d965f80",
+      "name": "Gmail - Enviar resumen",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        40
+      ],
+      "parameters": {
+        "sendTo": "winercr12383@gmail.com",
+        "subject": "=Resumen diario ChaskiMarket - {{ $json.fecha }}",
+        "message": "=Pipeline ejecutado correctamente para el {{ $json.fecha }}.\\n\\nVentas del día: S/ {{ $json.ventas_total_dia }}\\nTicket promedio: S/ {{ $json.ticket_promedio }}\\nFilas válidas: {{ $json.filas_validas }} de {{ $json.filas_leidas }}\\n\\nSin anomalías detectadas.",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Disparador diario 8am": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar ETL Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar ETL Python": {
+      "main": [
+        [
+          {
+            "node": "Parsear resumen JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear resumen JSON": {
+      "main": [
+        [
+          {
+            "node": "¿Se procesó un archivo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se procesó un archivo?": {
+      "main": [
+        [
+          {
+            "node": "¿Hay anomalía?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "¿Hay anomalía?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Enviar alerta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Enviar resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "chaskimarket-demo"
+  }
+}

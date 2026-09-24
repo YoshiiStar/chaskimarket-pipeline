@@ -1,0 +1,21 @@
+{
+  "estado": "procesado",
+  "fecha": "2026-09-13",
+  "archivo": "ventas_2026-09-13.csv",
+  "filas_leidas": 275,
+  "filas_duplicadas_eliminadas": 15,
+  "filas_validas": 220,
+  "filas_descartadas": 55,
+  "pct_descartado": 0.2,
+  "ventas_total_dia": 3889.5,
+  "ticket_promedio": 17.68,
+  "promedio_historico_30d": 4284.65,
+  "tiene_anomalia": true,
+  "anomalias": [
+    {
+      "tipo": "calidad_datos",
+      "detalle": "Se descartó 20% de las filas (55 de 275), por encima del umbral de 10%."
+    }
+  ],
+  "procesado_en": "2026-09-16T23:07:34"
+}
